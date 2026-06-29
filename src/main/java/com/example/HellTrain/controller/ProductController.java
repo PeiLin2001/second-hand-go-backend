@@ -20,6 +20,7 @@ import com.example.HellTrain.request.ProductReq;
 import com.example.HellTrain.request.SearchProductReq;
 import com.example.HellTrain.response.BasicResponse;
 import com.example.HellTrain.response.GetProductDataRes;
+import com.example.HellTrain.response.ProductRes;
 import com.example.HellTrain.service.ProductService;
 
 import jakarta.servlet.http.HttpSession;
@@ -84,11 +85,11 @@ public class ProductController {
     }
     
     @PostMapping("/add")
-    public BasicResponse addProduct(HttpSession session, @RequestBody ProductReq req) {
+    public ProductRes addProduct(HttpSession session, @RequestBody ProductReq req) {
 		//檢查登入session是否過期
     	Integer id=(Integer)session.getAttribute("user_id");
 		if(id==null) {
-			return new BasicResponse(ReplyMessage.PLEASE_LOGIN_FIRST.getCode(),//
+			return new ProductRes(ReplyMessage.PLEASE_LOGIN_FIRST.getCode(),//
 					ReplyMessage.PLEASE_LOGIN_FIRST.getMessage());
 		}
     	return productService.addProduct(id, req);

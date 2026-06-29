@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.HellTrain.response.ChatRoomRes;
+import com.example.HellTrain.response.ChatUnreadRes;
 import com.example.HellTrain.service.ChatRoomService;
 
 @RestController
@@ -44,5 +45,10 @@ public class ChatRoomController {
 	public ChatRoomRes updateProductId(@RequestParam("productId") Integer productId,
 			@RequestParam("roomId") int roomId) {
 		return chatRoomService.updateProductId(productId, roomId);
+	}
+	
+	@GetMapping(value = "/total-unread-count")
+	public ChatUnreadRes getTotalUnreadCount(@RequestParam("userId") int userId) {
+		return chatRoomService.getTotalUnreadCount(userId);
 	}
 }

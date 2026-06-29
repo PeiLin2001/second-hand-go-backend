@@ -48,7 +48,6 @@ public class UserService {
 	@Value("${default.avatar}")
 	private String defaultAvatar;
 
-	private final String namePattern = "^[\\u4e00-\\u9fa5a-zA-Z\\s]{2,20}$";// 姓名2-20碼
 	private final String pwdPattern = "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d!@#$%^&*\\-_]{8,}$";// 密碼至少8碼
 	private final String phonepattern = "09-\\d{8}";
 
@@ -131,7 +130,7 @@ public class UserService {
 	        		ReplyMessage.LOCATION_IS_NULL.getMessage());
 	    }
 	    // 檢查姓名格式
-	    if (!req.getName().matches(namePattern)) {
+	    if (req.getName().length()>20) {
 	        return new BasicResponse(ReplyMessage.PARAM_NAME_ERROR.getCode(),
 	                ReplyMessage.PARAM_NAME_ERROR.getMessage());
 	    }
@@ -377,7 +376,7 @@ public class UserService {
 					ReplyMessage.NO_DATA_FOUND.getMessage());
 		}
 		// 檢查姓名格式
-		if (!vo.getName().matches(namePattern)) {
+		if (vo.getName().length()>20) {
 			return new BasicResponse(ReplyMessage.PARAM_NAME_ERROR.getCode(), //
 					ReplyMessage.PARAM_NAME_ERROR.getMessage());
 		}

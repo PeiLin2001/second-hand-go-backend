@@ -25,6 +25,7 @@ import com.example.HellTrain.request.ProductReq;
 import com.example.HellTrain.request.SearchProductReq;
 import com.example.HellTrain.response.BasicResponse;
 import com.example.HellTrain.response.GetProductDataRes;
+import com.example.HellTrain.response.ProductRes;
 import com.example.HellTrain.vo.ProductVo;
 import com.example.HellTrain.vo.SimpleUserVo;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -322,8 +323,9 @@ public class ProductService {
 			return new BasicResponse(ReplyMessage.NO_PERMISSIONS.getCode(), ReplyMessage.NO_PERMISSIONS.getMessage());
 		}
 
-		// 只有草稿才能發布
-		if (!product.getStatus().equals(ProductStatus.NotSale.getMassage())) {
+		// 只有草稿或已下架才能發布
+		if (!product.getStatus().equals(ProductStatus.NotSale.getMassage())
+				&& !product.getStatus().equals(ProductStatus.Removed.getMassage())) {
 			return new BasicResponse(ReplyMessage.NO_PERMISSIONS.getCode(), ReplyMessage.NO_PERMISSIONS.getMessage());
 		}
 
@@ -371,15 +373,47 @@ public class ProductService {
 	}
 
 	// 新增商品（永遠是草稿，不檢查欄位）
-	public BasicResponse addProduct(int id, ProductReq req) {
+	public ProductRes addProduct(int id, ProductReq req) {
 
 		User user = userDao.getById(id);
 		if (user == null || !user.getStatus().equals(UserStatus.Normal.getMessage())) {
-			return new BasicResponse(ReplyMessage.NO_PERMISSIONS.getCode(), ReplyMessage.NO_PERMISSIONS.getMessage());
+			return new ProductRes(ReplyMessage.NO_PERMISSIONS.getCode(), ReplyMessage.NO_PERMISSIONS.getMessage());
 		}
 
+		List<String> imgUrls = new ArrayList<>();
+
+		if (req.getImgList() != null) {
+			for (String img : req.getImgList()) {
+				if (img == null || img.isBlank())
+					continue;
+
+				// 新圖片（base64），上傳 Cloudinary
+				try {
+					imgUrls.add(cloudinaryService.uploadBase64(img));
+				} catch (Exception e) {
+					return new ProductRes(ReplyMessage.PLEASE_TRY_LATE.getCode(),
+							ReplyMessage.PLEASE_TRY_LATE.getMessage());
+				}
+
+			}
+		}
+		// 先判斷 imgUrls 不為空
+		String imgPathJson;
+		if (!imgUrls.isEmpty()) {
+			try {
+				imgPathJson = mapper.writeValueAsString(imgUrls);
+			} catch (Exception e) {
+				return new ProductRes(ReplyMessage.PLEASE_TRY_LATE.getCode(),
+						ReplyMessage.PLEASE_TRY_LATE.getMessage());
+			}
+		} else {
+			imgPathJson = "[]";
+		}
+
+		int newProductId = 0; // 黑魔法參數
+
 		try {
-			String imgPathJson = mapper.writeValueAsString(req.getImgList() != null ? req.getImgList() : List.of());
+//			String imgPathJson = mapper.writeValueAsString(req.getImgList() != null ? req.getImgList() : List.of());
 			String typeJson = mapper.writeValueAsString(req.getType() != null ? req.getType() : List.of());
 			String locationJson = mapper.writeValueAsString(req.getLocation() != null ? req.getLocation() : List.of());
 			String gradeJson = mapper.writeValueAsString(req.getGrade() != null ? req.getGrade() : List.of());
@@ -392,11 +426,13 @@ public class ProductService {
 					ProductStatus.NotSale.getMassage(), // 寫死未上架
 					gradeJson, locationJson, deptGroupJson);
 
+			newProductId = productDao.findProductIdDesc(id).getProductId(); // 回傳productId用的黑魔法(不想也不敢大改了)
+
 		} catch (Exception e) {
-			return new BasicResponse(ReplyMessage.PLEASE_TRY_LATE.getCode(), ReplyMessage.PLEASE_TRY_LATE.getMessage());
+			return new ProductRes(ReplyMessage.PLEASE_TRY_LATE.getCode(), ReplyMessage.PLEASE_TRY_LATE.getMessage());
 		}
 
-		return new BasicResponse(ReplyMessage.SUCCESS.getCode(), ReplyMessage.SUCCESS.getMessage());
+		return new ProductRes(ReplyMessage.SUCCESS.getCode(), ReplyMessage.SUCCESS.getMessage(), newProductId);
 	}
 
 	// 發布商品（做完整檢查，通過才把 status 改成 OnSale）
@@ -431,8 +467,9 @@ public class ProductService {
 					ReplyMessage.NO_PERMISSIONS.getMessage());
 		}
 
-		// 狀態必須是「未上架」才能更新（已上架商品不允許修改）
-		if (!product.getStatus().equals(ProductStatus.NotSale.getMassage())) {
+		// 狀態必須是「未上架」才能更新（已上架商品不允許修改） //改如果是交易中或販售中不允許更改
+		if (product.getStatus().equals(ProductStatus.OnSale.getMassage())
+				|| product.getStatus().equals(ProductStatus.Trade.getMassage())) {
 			return new BasicResponse(ReplyMessage.NO_PERMISSIONS.getCode(), //
 					ReplyMessage.NO_PERMISSIONS.getMessage());
 		}

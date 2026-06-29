@@ -12,6 +12,7 @@ import com.example.HellTrain.dao.ChatRoomDao;
 import com.example.HellTrain.dao.UserDao;
 import com.example.HellTrain.entity.ChatRoom;
 import com.example.HellTrain.response.ChatRoomRes;
+import com.example.HellTrain.response.ChatUnreadRes;
 import com.example.HellTrain.vo.ChatRoomVo;
 
 import jakarta.transaction.Transactional;
@@ -129,4 +130,23 @@ public class ChatRoomService {
 					ReplyMessage.ROOM_IS_NOTFOUND.getMessage());
 		}
 	}
+	
+	// 取得單一使用者的未讀訊息總數
+	public ChatUnreadRes getTotalUnreadCount(int userId) {
+	    List<ChatRoom> roomList = chatRoomDao.getAllRoom(userId);
+
+	    int totalUnread = roomList.stream()
+	            .mapToInt(room -> {
+	                int targetUserId = (room.getInitiatorId() == userId)
+	                        ? room.getReceiverId()
+	                        : room.getInitiatorId();
+	                return chatMessageDao.countUnreadMsg(room.getRoomId(), targetUserId);
+	            })
+	            .sum();
+
+	    ChatUnreadRes res = new ChatUnreadRes(ReplyMessage.SUCCESS.getCode(), ReplyMessage.SUCCESS.getMessage());
+	    res.setTotalUnread(totalUnread);
+	    return res;
+	}
+	
 }

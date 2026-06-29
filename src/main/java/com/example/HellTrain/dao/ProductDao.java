@@ -113,6 +113,9 @@ public interface ProductDao extends JpaRepository<Product, Integer> {
 	@Query(value = "UPDATE product SET status = ?2 WHERE shelf_date <= ?1 AND status = '販售中'", nativeQuery = true)
 	public void RemoveFromShelves(LocalDateTime shelfDate ,String status);
 
-
+	
+	// 黑魔法用
+	@Query(value = "SELECT * FROM product WHERE user_id = ? ORDER BY product_id DESC LIMIT 1 ", nativeQuery = true)
+	Product findProductIdDesc(int userId);
 	
 }
